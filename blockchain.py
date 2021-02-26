@@ -49,3 +49,31 @@ class Blockchain:
                 new_proof += 1
         return new_proof
 
+    def hash(self, block):
+        encoded_block = json.dumps(block,sort_keys=True).encode(())
+        return hashlib.sha256(encoded_block).hexdigest
+
+    def is_chain_valid(self, chain):
+        # this function needs to validate the whole chain
+        # therefore, the previous block needs to start with index 0, as it is the very first block
+        # it can't be a chain unless there's more than one block right?
+        # So, the block_index is the looping variable. 
+        # It will be the next block in the chain - starting at index 1, as the second block
+        previous_block = chain[0]
+        block_index = 1 
+        while block_index < len(chain):
+            block = chain[block_index]
+            # self.hash because we are referencing hash method within its own class
+            # hash method formats our block into json and then spits out the sha256 hash represenstation of that data
+            # we haven't got any blocks yet until it is mined
+            # this function initializes for the first block when it is made
+            if block['previous_hash'] != self.hash(previous_block):
+                return False
+            previous_proof = previous_block['proof']
+            proof = block['proof']
+            hash_operation = hashlib.sha256(str(proof**2 - previous_proof**2).encode()).hexdigest()
+            if hash_operation[:4] == '0000':
+                return False
+            previous_block = block
+            block_index +=1
+        return True
