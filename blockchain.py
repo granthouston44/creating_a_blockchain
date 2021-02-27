@@ -1,7 +1,7 @@
 import datetime
 import hashlib
 import json
-from flask, import Flask, jsonify
+from flask import Flask, jsonify
 
 # blueprint for individual objects
 # we can create an object from a class
@@ -20,7 +20,7 @@ class Blockchain:
 
     def create_block(self, proof, previous_hash):
         block = {
-            'index': len(self.chain)+1
+            'index': len(self.chain)+1,
             'timestamp': str(datetime.datetime.now()),
             'proof': proof,
             'previous_hash': previous_hash
@@ -50,8 +50,8 @@ class Blockchain:
         return new_proof
 
     def hash(self, block):
-        encoded_block = json.dumps(block,sort_keys=True).encode(())
-        return hashlib.sha256(encoded_block).hexdigest
+        encoded_block = json.dumps(block,sort_keys=True).encode()
+        return hashlib.sha256(encoded_block).hexdigest()
 
     def is_chain_valid(self, chain):
         # this function needs to validate the whole chain
@@ -72,7 +72,7 @@ class Blockchain:
             previous_proof = previous_block['proof']
             proof = block['proof']
             hash_operation = hashlib.sha256(str(proof**2 - previous_proof**2).encode()).hexdigest()
-            if hash_operation[:4] == '0000':
+            if hash_operation[:4] != '0000':
                 return False
             previous_block = block
             block_index +=1
@@ -89,13 +89,33 @@ def mine_block():
     previous_block = blockchain.get_prev_block()
     previous_proof = previous_block['proof']
     proof = blockchain.proof_of_work(previous_proof)
-    previoush_hash = blockchain.hash(previous_block)
-    blockchain.create_block(proof, previous_hash)
-    response = {
-        'message': 'Congratulations, you just mined a block!',
+    previous_hash = blockchain.hash(previous_block)
+    block = blockchain.create_block(proof, previous_hash)
+    response = {'message': 'Yass! You just mined a block! ;)',
         'index': block['index'],
-        'timestamp': block['timestamp']
+        'timestamp': block['timestamp'],
         'proof': block['proof'],
-        'previoush_hash': block['previous_hash']
+        'previoush_hash': block['previous_hash']}
+    return jsonify(response), 200
+
+@app.route('/get_chain', methods = ['GET'])
+def get_chain():
+    response = {
+        'chain': blockchain.chain,
+        'length': len(blockchain.chain)
     }
     return jsonify(response), 200
+
+@app.route('/is_valid', methods = ['GET'])
+def is_valid():
+    is_valid = blockchain.is_chain_valid(blockchain.chain)
+    if is_valid:
+        message = 'Yer chain is safe and sound. No funny business'
+    else:
+        message = 'Some funny business is going on. The chain is not valid'
+    response = {
+        'message': message
+    }
+    return jsonify(response), 200
+
+app.run(host = '0.0.0.0', port = '5000')
